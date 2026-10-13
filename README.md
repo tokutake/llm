@@ -58,6 +58,8 @@ See [the Japanese experiment report](EXPERIMENT_REPORT_JA.md) for the prompt/out
 
 To run the Japanese experiment on a hosted NVIDIA GPU, open [the Colab notebook](https://colab.research.google.com/github/tokutake/llm/blob/main/colab_aozora.ipynb), select a GPU runtime, and run its cells. It downloads the source text and tokenizer at runtime; neither the corpus nor checkpoint is stored in this repository.
 
+If Colab has no GPU resources available, import [`kaggle_aozora.ipynb`](kaggle_aozora.ipynb) into a new Kaggle Notebook, then enable GPU and Internet in its options before running the cells.
+
 The local Japanese demo uses Natsume Soseki's *I Am a Cat* (`吾輩は猫である`), Aozora Bunko work card [#789](https://www.aozora.gr.jp/cards/000148/card789.html). Its source text is based on *Natsume Soseki Complete Works 1* (Chikuma Bunko, 1987), entered by Shibata Takuji and proofread by volunteers listed on the work card. The preparation script removes Aozora ruby and editorial annotations and keeps the story text; it does not redistribute the corpus. Aozora Bunko permits free reuse and redistribution of works whose copyright has expired, and asks users to retain provenance information; see its [file handling rules](https://www.aozora.gr.jp/guide/kijyunn.html).
 
 Prepare the local corpus and tokenizer, then train and generate:
