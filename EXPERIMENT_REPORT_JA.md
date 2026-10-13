@@ -31,6 +31,44 @@
 - tokenizer学習時間: 約83.2秒
 - loss: step 1で8.339、最後の100 step平均で3.993
 
+## Kaggle GPU 実験
+
+実施日: 2026-10-13。上記のローカル実験と同じ前処理済み本文、BPE tokenizer、モデル構成、seed、batch、context、学習率、2,000 stepを使い、Kaggle Notebookで実行した。Notebookは[T4 x2](https://www.kaggle.com/code/tokutake/notebook63ce7bb1f6)を選択したが、学習ログの `torch.cuda.get_device_name(0)` は `Tesla T4` と表示された。したがって、この測定はGPU 2枚で並列学習した結果ではなく、1枚のT4上での結果である。
+
+- 実行環境: Kaggle、PyTorch 2.11.0+cu128、CUDA available: True、Accelerator設定: GPU T4 x2、実際に使ったdevice: cuda / Tesla T4
+- 学習データ: 321,139文字、220,797 BPE tokens、語彙4,096
+- モデル: 626,304 parameters
+- 学習時間: スクリプト計測11.1秒。KaggleのNotebookセル表示は32.943秒（セル起動等を含む）
+- loss: step 1で8.339、step 2,000で3.993
+- 出力: `wagahai_torch.pt` を保存。生成もNotebookで実施
+
+KaggleのNotebook出力には以下の生成が記録された。
+
+```text
+吾輩は猫である。名前はまだ無い。主人が書斎の中へ這入って来て何でも見給え。
+　この主人の主人の頭と、ちょっと弁を振り出す。この通り台所へ乗って見ると、吾輩は、眼を突けておくふむして「それから、手はもう少し、ぐんすまかりますから、僕もや、どうするさ。もう少しやっとおしまい、僕の手で実験を買ってるのよ」と聞く。「そのそいつは少し気が大切り込めてしまった。僕
+```
+
+猫・主人・書斎など本文由来らしい語や語調は出るが、文意は破綻している。単一作品を小型モデルで2,000 step学習したデモであり、自然な文章生成を示すものではない。
+
+## Kaggle T4 とローカルCPUの比較
+
+ローカルCPUで同じ2,000-step学習にかかった134.9秒と、Kaggle T4の学習スクリプト内計測11.1秒を比較すると、今回の設定ではT4が約12.2倍高速だった（123.8秒短縮、約91.8%減）。Notebookセル全体の32.943秒を使うと約4.1倍。何を「時間」とするかで値が変わるため、純粋な学習ループ同士の目安は約12倍、Notebookのセル経過時間を含めた比較は約4倍と記す。別マシン・別フレームワークの測定であり、一般的なGPU対CPU比ではない。
+
+| 実行場所 / device | 2,000 step | 最後の100 step平均loss | 備考 |
+|---|---:|---:|---|
+| 2019 iMac / Intel Core i5-8500 CPU | 134.9秒 | 3.993 | ローカル実測 |
+| Kaggle / Tesla T4 1基 | 11.1秒 | 3.993 | 学習スクリプト計測 |
+| Kaggle / Tesla T4 1基 | 32.943秒 | 3.993 | Notebookセルの実行時間表示 |
+
+## TFLOPS の読み方
+
+NVIDIAの公称仕様ではTesla T4 1基あたり FP32 は8.1 TFLOPS、Tensor Coreを使う混合精度FP16/FP32は最大65 TFLOPS。理論ピーク値で、今回の学習で実測したFLOPSではない。学習コードはFP32の通常のPyTorch演算で、混合精度やTensor Core向け最適化を明示的に使っていないため、65 TFLOPSを今回の実効性能として扱えない。[NVIDIA T4仕様](https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet.pdf)
+
+仮に設定どおり2基を並べて理論値を足すならFP32 16.2 TFLOPS、混合精度最大130 TFLOPSだが、今回のログには1基のT4しか現れず、その合算値を実験結果にしてはいけない。また、i5-8500 CPUの理論TFLOPSや今回の実効FLOPSは測定していない。CPUとの比較は同一スクリプトの経過時間に基づく約12.2倍（学習ループ計測）/約4.1倍（Notebookセル時間）であり、TFLOPS比ではない。
+
+TFLOPSは1秒あたりの浮動小数点演算を兆回単位で表した理論ピーク指標。1 TFLOPS = 10^12 FLOP/s。モデル規模やバッチが小さい場合は、メモリ転送、カーネル起動、データ準備などの影響でピーク性能に届かない。このため今回のような小さなモデルでは、仕様のTFLOPSから実時間を直接予測できない。
+
 lossは学習中の値で、独立した評価用コーパスは使っていない。文章理解や未知文への汎化を示す数値ではない。
 
 ## 実行環境
