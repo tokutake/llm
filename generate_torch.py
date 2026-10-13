@@ -9,7 +9,7 @@ def main():
     ap.add_argument('--tokens',type=int,default=120); ap.add_argument('--temperature',type=float,default=.7)
     ap.add_argument('--top-k',type=int,default=20); ap.add_argument('--checkpoint',default='philosophy_torch.pt')
     ap.add_argument('--tokenizer',default='philosophy_tokenizer.json')
-    ap.add_argument('--device',choices=['auto','cpu','mps'],default='auto',help='auto prefers MPS when available')
+    ap.add_argument('--device',choices=['auto','cpu','mps','cuda'],default='auto',help='auto prefers CUDA, then MPS, then CPU')
     ap.add_argument('--seed',type=int,default=None,help='fixed seed for reproducible sampling')
     args=ap.parse_args(); torch.set_num_threads(6)
     device=choose_device(args.device)

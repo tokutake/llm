@@ -40,7 +40,7 @@ Train a new model from scratch:
 
 Then generate with `philosophy_torch.pt`. The current model learns English word patterns but does not reliably produce coherent paragraphs; see `philosophy_torch_output.txt` for an honest sample.
 
-Training and generation default to `--device auto`, which selects MPS when PyTorch reports it available and otherwise uses CPU. Choose explicitly with `--device mps` or `--device cpu`.
+Training and generation default to `--device auto`, which selects CUDA, then MPS, then CPU when available. Choose explicitly with `--device cuda`, `--device mps`, or `--device cpu`.
 
 ## Data
 
@@ -55,6 +55,8 @@ The included checkpoint is a small experimental model trained on the corpus list
 ## Japanese experiment
 
 See [the Japanese experiment report](EXPERIMENT_REPORT_JA.md) for the prompt/output sample, training time, hardware, and CPU/MPS comparison.
+
+To run the Japanese experiment on a hosted NVIDIA GPU, open [the Colab notebook](https://colab.research.google.com/github/tokutake/llm/blob/main/colab_aozora.ipynb), select a GPU runtime, and run its cells. It downloads the source text and tokenizer at runtime; neither the corpus nor checkpoint is stored in this repository.
 
 The local Japanese demo uses Natsume Soseki's *I Am a Cat* (`吾輩は猫である`), Aozora Bunko work card [#789](https://www.aozora.gr.jp/cards/000148/card789.html). Its source text is based on *Natsume Soseki Complete Works 1* (Chikuma Bunko, 1987), entered by Shibata Takuji and proofread by volunteers listed on the work card. The preparation script removes Aozora ruby and editorial annotations and keeps the story text; it does not redistribute the corpus. Aozora Bunko permits free reuse and redistribution of works whose copyright has expired, and asks users to retain provenance information; see its [file handling rules](https://www.aozora.gr.jp/guide/kijyunn.html).
 

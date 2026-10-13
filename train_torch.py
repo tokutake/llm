@@ -8,14 +8,20 @@ from tokenizer import BPETokenizer
 
 def choose_device(name):
     if name == 'auto':
+        if torch.cuda.is_available():
+            return torch.device('cuda')
         return torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     device = torch.device(name)
+    if device.type == 'cuda' and not torch.cuda.is_available():
+        raise SystemExit('CUDA was requested but no CUDA device is available.')
     if device.type == 'mps' and not torch.backends.mps.is_available():
         raise SystemExit('MPS was requested but is unavailable in this PyTorch/macOS environment.')
     return device
 
 def sync(device):
-    if device.type == 'mps':
+    if device.type == 'cuda':
+        torch.cuda.synchronize(device)
+    elif device.type == 'mps':
         torch.mps.synchronize()
 
 class Block(nn.Module):
@@ -56,7 +62,7 @@ def main():
     ap.add_argument('--batch',type=int,default=16); ap.add_argument('--lr',type=float,default=.001)
     ap.add_argument('--seed',type=int,default=11); ap.add_argument('--out',default='philosophy_torch.pt')
     ap.add_argument('--save-every',type=int,default=1000); ap.add_argument('--init',default=None)
-    ap.add_argument('--device',choices=['auto','cpu','mps'],default='auto',help='auto prefers MPS when available')
+    ap.add_argument('--device',choices=['auto','cpu','mps','cuda'],default='auto',help='auto prefers CUDA, then MPS, then CPU')
     args=ap.parse_args()
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
     torch.set_num_threads(6)
