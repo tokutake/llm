@@ -4,7 +4,13 @@ import re
 from collections import Counter
 from pathlib import Path
 
-PRETOKEN_RE = re.compile(r"\s+|[^\W\d_]+(?:['’][^\W\d_]+)*|\d+|[^\w\s]", re.UNICODE)
+# Keep Japanese script runs separate so no-space text is learned as subwords
+# instead of one enormous "word". Latin text retains word-aware splitting.
+PRETOKEN_RE = re.compile(
+    r"\s+|[ぁ-ゖゝゞ]+|[ァ-ヺー・]+|[一-龯々〆ヵヶ]+|"
+    r"[^\W\d_]+(?:['’][^\W\d_]+)*|\d+|[^\w\s]",
+    re.UNICODE,
+)
 
 class BPETokenizer:
     def __init__(self, alphabet, merges):

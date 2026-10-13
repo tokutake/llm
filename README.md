@@ -10,6 +10,8 @@ This project pretrains a small GPT from scratch on four English philosophy books
 - `train_torch.py`, `generate_torch.py`, `tokenizer.py`: training and generation code.
 - `requirements-torch.txt`: Python dependencies.
 - `philosophy_torch_output.txt`: sample generations.
+- `prepare_aozora.py`: downloads and cleans the Japanese source text locally, then trains its tokenizer.
+- `wagahai_tokenizer.json`, `wagahai_torch.pt`: Japanese tokenizer and experimental Soseki model (local artifacts are not included in the repository).
 - `archive/`: earlier character-level and single-book experiments.
 
 The local corpus used for the included checkpoint contains Marcus Aurelius's *Meditations* (Gutenberg #2680), Epictetus's *Enchiridion* (#45109), Plato's *Apology* (#1656), and Aristotle's *Nicomachean Ethics* (#8438). It is about 1.19 million characters after removing the Gutenberg wrappers. The corpus text is intentionally excluded from this repository.
@@ -49,3 +51,17 @@ To train from scratch, obtain and prepare the source texts separately, then save
 The source editions are [Meditations](https://www.gutenberg.org/ebooks/2680), [Enchiridion](https://www.gutenberg.org/ebooks/45109), [Apology](https://www.gutenberg.org/ebooks/1656), and [Nicomachean Ethics](https://www.gutenberg.org/ebooks/8438). Project Gutenberg marks these editions public domain in the United States. Copyright status can differ by jurisdiction, and translations or edition-specific material may have separate rights. This repository does not include the source corpus and is not an official Project Gutenberg publication or endorsement. See [Project Gutenberg's license explanation](https://www.gutenberg.org/policy/license.html) and check applicable local law before redistributing source texts.
 
 The included checkpoint is a small experimental model trained on the corpus listed above. The checkpoint is provided for research and experimentation; no claim is made that it is an official Project Gutenberg work. The source texts and their rights are separate from this project's code and model artifacts.
+
+## Japanese experiment
+
+The local Japanese demo uses Natsume Soseki's *I Am a Cat* (`吾輩は猫である`), Aozora Bunko work card [#789](https://www.aozora.gr.jp/cards/000148/card789.html). Its source text is based on *Natsume Soseki Complete Works 1* (Chikuma Bunko, 1987), entered by Shibata Takuji and proofread by volunteers listed on the work card. The preparation script removes Aozora ruby and editorial annotations and keeps the story text; it does not redistribute the corpus. Aozora Bunko permits free reuse and redistribution of works whose copyright has expired, and asks users to retain provenance information; see its [file handling rules](https://www.aozora.gr.jp/guide/kijyunn.html).
+
+Prepare the local corpus and tokenizer, then train and generate:
+
+```sh
+.venv311/bin/python prepare_aozora.py
+.venv311/bin/python train_torch.py --data wagahai_corpus.txt --tokenizer wagahai_tokenizer.json --device cpu --steps 2000 --out wagahai_torch.pt
+.venv311/bin/python generate_torch.py --checkpoint wagahai_torch.pt --tokenizer wagahai_tokenizer.json --prompt "吾輩は猫である。名前はまだ無い。" --tokens 120
+```
+
+This experimental model has 626,304 parameters and was trained for 2,000 steps. Its Japanese output is more legible than the English demo but remains incoherent in places.

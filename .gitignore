@@ -1,5 +1,8 @@
 # Source corpora are downloaded or prepared locally and are not redistributed here.
 philosophy_corpus.txt
+wagahai_corpus.txt
+wagahai_tokenizer.json
+wagahai_torch.pt
 archive/character_demo/data.txt
 archive/single_book_experiments/meditations_corpus.txt
 
