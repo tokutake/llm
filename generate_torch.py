@@ -1,4 +1,4 @@
-import argparse, random
+import argparse
 import torch
 from train_torch import GPT
 from train_torch import choose_device
@@ -10,12 +10,16 @@ def main():
     ap.add_argument('--top-k',type=int,default=20); ap.add_argument('--checkpoint',default='philosophy_torch.pt')
     ap.add_argument('--tokenizer',default='philosophy_tokenizer.json')
     ap.add_argument('--device',choices=['auto','cpu','mps'],default='auto',help='auto prefers MPS when available')
+    ap.add_argument('--seed',type=int,default=None,help='fixed seed for reproducible sampling')
     args=ap.parse_args(); torch.set_num_threads(6)
     device=choose_device(args.device)
     checkpoint=torch.load(args.checkpoint,map_location='cpu',weights_only=False); cfg=checkpoint['config']
     tok=BPETokenizer.load(args.tokenizer); model=GPT(**cfg).to(device); model.load_state_dict(checkpoint['state']); model.eval()
     ids=tok.encode(args.prompt)
-    torch.manual_seed(random.randrange(2**31))
+    if args.seed is not None:
+        torch.manual_seed(args.seed)
+    else:
+        torch.seed()
     with torch.no_grad():
         for _ in range(args.tokens):
             x=torch.tensor([ids[-cfg['context']:]],dtype=torch.long,device=device); logits=model(x)[0,-1]/max(args.temperature,.01)
