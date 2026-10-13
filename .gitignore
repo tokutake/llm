@@ -1,0 +1,9 @@
+# Source corpora are downloaded or prepared locally and are not redistributed here.
+philosophy_corpus.txt
+archive/character_demo/data.txt
+archive/single_book_experiments/meditations_corpus.txt
+
+# Local Python environment and generated caches.
+.venv*/
+__pycache__/
+*.py[cod]
