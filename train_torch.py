@@ -1,10 +1,22 @@
-"""CPU-friendly BPE GPT pretraining for Intel Macs (PyTorch 2.2)."""
-import argparse, json, random, time
+"""Small BPE GPT pretraining with CPU and Apple Metal (MPS) support."""
+import argparse, random, time
 from pathlib import Path
 import numpy as np
 import torch
 from torch import nn
 from tokenizer import BPETokenizer
+
+def choose_device(name):
+    if name == 'auto':
+        return torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    device = torch.device(name)
+    if device.type == 'mps' and not torch.backends.mps.is_available():
+        raise SystemExit('MPS was requested but is unavailable in this PyTorch/macOS environment.')
+    return device
+
+def sync(device):
+    if device.type == 'mps':
+        torch.mps.synchronize()
 
 class Block(nn.Module):
     def __init__(self,dim,heads):
@@ -44,28 +56,33 @@ def main():
     ap.add_argument('--batch',type=int,default=16); ap.add_argument('--lr',type=float,default=.001)
     ap.add_argument('--seed',type=int,default=11); ap.add_argument('--out',default='philosophy_torch.pt')
     ap.add_argument('--save-every',type=int,default=1000); ap.add_argument('--init',default=None)
+    ap.add_argument('--device',choices=['auto','cpu','mps'],default='auto',help='auto prefers MPS when available')
     args=ap.parse_args()
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
     torch.set_num_threads(6)
+    device=choose_device(args.device)
     tok=BPETokenizer.load(args.tokenizer); text=Path(args.data).read_text(encoding='utf-8')
     ids=torch.tensor(tok.encode(text),dtype=torch.long); vocab=len(tok.tokens)
-    model=GPT(vocab,args.dim,args.heads,args.layers,args.context)
+    model=GPT(vocab,args.dim,args.heads,args.layers,args.context).to(device)
     if args.init:
         checkpoint=torch.load(args.init,map_location='cpu',weights_only=False)
         model.load_state_dict(checkpoint['state'])
     opt=torch.optim.AdamW(model.parameters(),lr=args.lr,weight_decay=.01)
-    print(f'{len(text):,} characters -> {len(ids):,} BPE tokens; vocab {vocab}; parameters {sum(p.numel() for p in model.parameters()):,}',flush=True)
-    started=time.time(); losses=[]
+    print(f'{len(text):,} characters -> {len(ids):,} BPE tokens; vocab {vocab}; parameters {sum(p.numel() for p in model.parameters()):,}; device {device}',flush=True)
+    sync(device); started=time.time(); losses=[]
     for step in range(1,args.steps+1):
         starts=torch.randint(0,len(ids)-args.context-1,(args.batch,))
-        x=torch.stack([ids[s:s+args.context] for s in starts]); y=torch.stack([ids[s+1:s+args.context+1] for s in starts])
+        x=torch.stack([ids[s:s+args.context] for s in starts]).to(device)
+        y=torch.stack([ids[s+1:s+args.context+1] for s in starts]).to(device)
         model.train(); logits=model(x); loss=nn.functional.cross_entropy(logits.reshape(-1,vocab),y.reshape(-1))
         opt.zero_grad(set_to_none=True); loss.backward(); nn.utils.clip_grad_norm_(model.parameters(),1.0); opt.step()
         losses.append(loss.item())
         if step==1 or step%100==0:
+            sync(device)
             print(f'step {step:5d}/{args.steps} loss {sum(losses[-100:])/len(losses[-100:]):.3f} elapsed {time.time()-started:.1f}s',flush=True)
         if args.save_every and step%args.save_every==0:
-            torch.save({'state':model.state_dict(),'config':{'vocab':vocab,'dim':args.dim,'heads':args.heads,'layers':args.layers,'context':args.context}},args.out)
-    torch.save({'state':model.state_dict(),'config':{'vocab':vocab,'dim':args.dim,'heads':args.heads,'layers':args.layers,'context':args.context}},args.out)
+            torch.save({'state':{k:v.detach().cpu() for k,v in model.state_dict().items()},'config':{'vocab':vocab,'dim':args.dim,'heads':args.heads,'layers':args.layers,'context':args.context}},args.out)
+    sync(device)
+    torch.save({'state':{k:v.detach().cpu() for k,v in model.state_dict().items()},'config':{'vocab':vocab,'dim':args.dim,'heads':args.heads,'layers':args.layers,'context':args.context}},args.out)
     print(f'Saved {args.out}; final mean loss {sum(losses[-100:])/len(losses[-100:]):.3f}',flush=True)
 if __name__=='__main__': main()

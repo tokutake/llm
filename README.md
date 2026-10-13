@@ -1,6 +1,6 @@
 # Small philosophy language model
 
-This project pretrains a small GPT from scratch on four English philosophy books. The code runs on the Intel Mac CPU using Python 3.11 and PyTorch.
+This project pretrains a small GPT from scratch on four English philosophy books. The code runs on Intel Macs with Python 3.11 and PyTorch, using CPU or Metal (MPS) when available.
 
 ## What's here
 
@@ -37,6 +37,8 @@ Train a new model from scratch:
 ```
 
 Then generate with `philosophy_torch.pt`. The current model learns English word patterns but does not reliably produce coherent paragraphs; see `philosophy_torch_output.txt` for an honest sample.
+
+Training and generation default to `--device auto`, which selects MPS when PyTorch reports it available and otherwise uses CPU. Choose explicitly with `--device mps` or `--device cpu`.
 
 ## Data
 
